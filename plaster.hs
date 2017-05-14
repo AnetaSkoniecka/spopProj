@@ -4,29 +4,30 @@ import System.Environment
 ----------------------
 -- struktury danych --
 
-data Plaster = Plaster { rows::[Row], niewiem::Int }
-data Row = Row { fields::[Field], y::Int }
-data Field = A | B | C | D | E | F | G | Empty deriving (Eq)
+data Plaster = Plaster { rows::[Row] }
+data Row = Row { fields::[Field], h::Int }
+data Field = Field { fieldType::FieldType, x::Int, y::Int }
+data FieldType = A | B | C | D | E | F | G | Empty deriving (Eq)
 
 -------------------------
 -- wyswietlanie danych --
 
 instance Show Field where
-	show A = "A   "
-	show B = "B   "
-	show C = "C   "
-	show D = "D   "
-	show E = "E   "
-	show F = "F   "
-	show G = "G   "
-	show Empty = ".   "
+	show (Field A _ _) = "A   "
+	show (Field B _ _) = "B   "
+	show (Field C _ _) = "C   "
+	show (Field D _ _) = "D   "
+	show (Field E _ _) = "E   "
+	show (Field F _ _) = "F   "
+	show (Field G _ _) = "G   "
+	show (Field Empty _ _) = ".   "
 
 showFields :: [Field] -> String
 showFields [] = []
 showFields (f:fs) = show f ++ showFields fs
 
 instance Show Row where
-	show (Row fields y) | y `mod` 2 == 1 = "  " ++ showFields fields
+	show (Row fields h) | h `mod` 2 == 1 = "  " ++ showFields fields
 				| otherwise = showFields fields
 
 showRows :: [Row] -> String
@@ -34,28 +35,28 @@ showRows [] = []
 showRows (r:rs) = show r ++ "\n" ++ showRows rs
 
 instance Show Plaster where
-	show (Plaster rows niewiem) = showRows rows
+	show (Plaster rows) = showRows rows
 
 -----------------------------------
 -- parsowanie z pliku tekstowego --
 
-parseFields :: String -> [Field]
-parseFields [] = []
-parseFields (s:sx) | s == 'A' = A : parseFields sx
-	| s == 'B' = B : parseFields sx
-	| s == 'C' = C : parseFields sx
-	| s == 'D' = D : parseFields sx
-	| s == 'E' = E : parseFields sx
-	| s == 'F' = F : parseFields sx
-	| s == 'G' = G : parseFields sx
-	| otherwise = Empty : parseFields sx
+parseFields :: String -> Int -> Int -> [Field]
+parseFields [] _ _ = []
+parseFields (s:sx) x y | s == 'A' = (Field A x y) : parseFields sx (x + 1) y
+	| s == 'B' = (Field B x y) : parseFields sx (x + 1) y
+	| s == 'C' = (Field C x y) : parseFields sx (x + 1) y
+	| s == 'D' = (Field D x y) : parseFields sx (x + 1) y
+	| s == 'E' = (Field E x y) : parseFields sx (x + 1) y
+	| s == 'F' = (Field F x y) : parseFields sx (x + 1) y
+	| s == 'G' = (Field G x y) : parseFields sx (x + 1) y
+	| otherwise = (Field Empty x y) : parseFields sx (x + 1) y
 
 parseRows :: [String] -> Int -> [Row]
 parseRows [] _ = []
-parseRows (l:ls) i = (Row (parseFields l) i) : parseRows ls (i + 1)
+parseRows (l:ls) i = (Row (parseFields l 1 i) i) : parseRows ls (i + 1)
 
 parsePlaster :: [String] -> Plaster
-parsePlaster lines = Plaster (parseRows lines 1) 8
+parsePlaster lines = Plaster (parseRows lines 1)
 
 ----------------------------------------------
 -- sprawdzanie poprawnosci pliku tekstowego --
@@ -72,7 +73,7 @@ checkInput contents = do
 	if length rows == 0 then False
 	else do
 		let n = maxRowsSize rows
-		(checkSizes rows (n - 1) n) && (checkAllLetters rows)
+		(checkSizes rows (n - 1) n) && (checkAllFieldTypes rows)
 
 maxRowsSize :: [String] -> Int
 maxRowsSize [] = 0
@@ -87,14 +88,14 @@ checkSizes (r:rs) rn n = do
 	else do
 		correctRow && checkSizes rs (n - 1) n
 
-checkAllLetters :: [String] -> Bool
-checkAllLetters [] = True
-checkAllLetters (r:rs) = checkRowLetters r && checkAllLetters rs
+checkAllFieldTypes :: [String] -> Bool
+checkAllFieldTypes [] = True
+checkAllFieldTypes (r:rs) = checkRowFieldTypes r && checkAllFieldTypes rs
 
-checkRowLetters :: String -> Bool
-checkRowLetters [] = True
-checkRowLetters (r:rs) = isLetter r && checkRowLetters rs
+checkRowFieldTypes :: String -> Bool
+checkRowFieldTypes [] = True
+checkRowFieldTypes (r:rs) = isFieldType r && checkRowFieldTypes rs
 
-isLetter :: Char -> Bool
-isLetter l | (l == 'A' || l == 'B' || l == 'C' || l == 'D' || l == 'E' || l == 'F' || l == 'G' || l == '.') = True
+isFieldType :: Char -> Bool
+isFieldType l | (l == 'A' || l == 'B' || l == 'C' || l == 'D' || l == 'E' || l == 'F' || l == 'G' || l == '.') = True
 	| otherwise = False
