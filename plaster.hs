@@ -1,28 +1,46 @@
 module Plaster where
 import System.Environment 
 import Data.Maybe
+import Data.List (sortBy)
+import Data.Function (on)
 ----------------------
 -- struktury danych --
 
 data Plaster = Plaster { rows::[Row] }
 data Row = Row { fields::[Field], h::Int }
 data Field = Field { fieldType::FieldType, x::Int, y::Int }
-data FieldType = A | B | C | D | E | F | G | Empty deriving (Eq)
+data FieldType = Empty| A | B | C | D | E | F | G  deriving (Eq, Enum, Show, Ord)
 
 -------------------------
+
+
+
+
+
+
+
+
+
+
+
+getAllFields (Plaster rows) = concat [ y | y <- map (\(Row fields _) -> fields ) rows] 
+   
 getField :: Plaster -> Int -> Int -> Maybe Field
-getField (Plaster rows) x y = if y < 0 || y > (length rows)then Nothing 
+getField (Plaster rows) x y = if y < 0 || y >= (length rows)then Nothing 
     else getField1 (rows!!y) x
 
 getField1 :: Row -> Int-> Maybe Field
-getField1 (Row fields _) x = if x < 0 || x > (length fields) then Nothing
+getField1 (Row fields _) x = if x < 0 || x >= (length fields) then Nothing
     else Just (fields!!x) 
     
-
-getNeighbours _ Nothing = error "szukasz sasiada nieistniejacego pola"
-getNeighbours p (Just (Field _ x y)) = if y `mod` 2 == 0 then getNeighboursEven p x y
-    else getNeighboursOdd p x y
-    
+fieldName (Field fieldType _ _) = fromEnum fieldType
+sortFields :: [Field] -> [Field]
+sortFields = sortBy (compare `on` fieldName)
+  
+--getNeighbours _ Nothing = error "szukasz sasiada nieistniejacego pola"
+getNeighbours p  (Field _ x y) = if y `mod` 2 == 0 then sortFields (getNeighboursEven p x y)
+    else sortFields (getNeighboursOdd p x y)
+   
 getNeighboursEven p x y=    
     maybeToList (getField p (x) (y-1) ) ++
     maybeToList (getField p (x+1) (y-1) ) ++
@@ -38,7 +56,18 @@ getNeighboursOdd p x y=
     maybeToList (getField p (x+1) (y) ) ++
     maybeToList (getField p (x-1) (y+1) ) ++
     maybeToList (getField p (x) (y+1) ) 
+    
+--zwraca pary (pole, liczba niepustych sasiadow)
+getNotEmptyNeighboursCount p = [(x, length notEmptyNeighbours)| x <- getAllFields p, let notEmptyNeighbours = filter (\(Field ft _ _) -> ft /= Empty) (getNeighbours p x )]   
 
+--zwraca pole ktore ma najwiecej wypelnionych sasiadow na planszy, ale nie ma ich wypelnionych wszystkich: czyli po prostu ma najmniej kropek w stosunku do liczby wypelnionych
+--to chyba moze sypnac wyjatek!
+getMostNeigboured p = fst (reverse (sortBy (compare `on` snd) (filter (\(field, cnt) -> cnt < length(getNeighbours p field)) (getNotEmptyNeighboursCount p))) !! 0)
+
+
+ 
+ 
+ 
 -- wyswietlanie danych --
 
 instance Show Field where
@@ -56,7 +85,7 @@ showFields [] = []
 showFields (f:fs) = show f ++ showFields fs
 
 instance Show Row where
-    show (Row fields h) | h `mod` 2 == 1 = "  " ++ showFields fields
+    show (Row fields h) | h `mod` 2 == 0 = "  " ++ showFields fields
                 | otherwise = showFields fields
 
 showRows :: [Row] -> String
