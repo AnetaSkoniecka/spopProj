@@ -1,0 +1,6 @@
+plaster <- main
+field = getFieldNormal plaster 1 0
+getNeighbours plaster field
+field
+plaster
+isFieldCorrect plaster field
