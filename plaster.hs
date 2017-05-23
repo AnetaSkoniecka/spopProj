@@ -1,23 +1,75 @@
 module Plaster where
 import System.Environment 
 import Data.Maybe
-import Data.List (sortBy)
 import Data.Function (on)
+import Data.List
+
+--------------
+-- algorytm --
+
+--ll : lista list
+solve ll = if checkIfCanFinish ll then ll  --lista nie zawiera juz list, ktore maja zara/kropki - zwroc prawdilowe listy
+           else concatMap solve' ll
+       where checkIfCanFinish ll = length (filter (\z -> isJust (elemIndex '.' z)) ll) == 0
+    
+solve' l = solve (replaceFirstZero l)
+
+replaceFirstZero l = map (\(a,b) -> a) (filter isSorted [((replaceNth n x l), 3)| x <- getPossibleGuesses l]) 
+    where n = if isNothing (elemIndex '.' l) then -1
+              else fromJust (elemIndex '.' l)
+
+--zamienia element o wskazanym indexie. jezeli ix = -1 to nie zamienia nic
+replaceNth n newVal (x:xs)
+    | n == -1 = x:xs
+    | n == 0 = newVal:xs
+    | otherwise = x:replaceNth (n-1) newVal xs
+
+    
+--zamiast tego powinna byc funkcja, ktora sprawdza czy plansza podana jako lista jest prawidlowa
+isSorted ([], size)       	= True
+isSorted ([x], size)      	= True
+isSorted ((x:y:xs), size) 	= True--(x <= y || y == 0) && isSorted (y:xs)
+
+--zamaist tego powinna byc funkcja, ktora zwraca dopuszcalnych sasiadow
+getPossibleGuesses l = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+
+-- checkIfCanFinish (l:ls) = (checkIfCanFinish' l) && (checkIfCanFinish ls)
+-- checkIfCanFinish [] = True
+-- checkIfCanFinish' [] = True
+-- checkIfCanFinish' (c:cs) = (c /= '.') && (checkIfCanFinish' cs)
+
+
+
+
 ----------------------
 -- struktury danych --
 
 data Plaster = Plaster { rows::[Row] }
 data Row = Row { fields::[Field], h::Int }
 data Field = Field { fieldType::FieldType, x::Int, y::Int }
-data FieldType = Empty| A | B | C | D | E | F | G  deriving (Eq, Enum, Show, Ord)
+data FieldType = Empty | A | B | C | D | E | F | G  deriving (Eq, Enum, Show, Ord)
 
 -------------------------
 
+plasterToArray :: Plaster -> [Char]
+plasterToArray (Plaster []) = []
+plasterToArray (Plaster (r:rs)) = (rowToArray r) ++ (plasterToArray (Plaster rs))
 
+rowToArray :: Row -> [Char]
+rowToArray (Row [] _) = []
+rowToArray (Row (f:fs) h) = (fieldToChar f) : (rowToArray (Row fs h))
 
+fieldToChar :: Field -> Char
+fieldToChar (Field fieldType _ _) | fieldType == A = 'A'
+	| fieldType == B = 'B'
+	| fieldType == C = 'C'
+	| fieldType == D = 'D'
+	| fieldType == E = 'E'
+	| fieldType == F = 'F'
+	| fieldType == G = 'G'
+	| fieldType == Empty = '.'
 
-
-
+-- fromArrayToSize = 
 
 
 
