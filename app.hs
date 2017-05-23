@@ -14,6 +14,10 @@ main = do
         print (isPlasterCorrect plaster)
         let solved = solve [array] size
         print solved
+        if (length solved) > 0 then
+        	print (fromArrayToPlaster (solved !! 0) size)
+        else
+        	print "Brak rozwiazan"
         return plaster
     else error "Niepoprawne wejście"
     

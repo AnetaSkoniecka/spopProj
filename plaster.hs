@@ -15,7 +15,7 @@ solve ll size = if checkIfCanFinish ll then ll  --lista nie zawiera juz list, kt
     
 solve' (l,size) = solve (replaceFirstZero l size) size
 
-replaceFirstZero l size = map (\(a,b) -> a) (filter isSorted [((replaceNth n x l), size)| x <- getPossibleGuesses l]) 
+replaceFirstZero l size = map (\(a,b) -> a) (filter isCorrected [((replaceNth n x l), size)| x <- getPossibleGuesses l]) 
     where n = if isNothing (elemIndex '.' l) then -1
               else fromJust (elemIndex '.' l)
 
@@ -27,9 +27,9 @@ replaceNth n newVal (x:xs)
 
     
 --zamiast tego powinna byc funkcja, ktora sprawdza czy plansza podana jako lista jest prawidlowa
-isSorted ([], size)       = True
-isSorted ([x], size)      = True
-isSorted ((array @ (x:y:xs)), size) = isPlasterCorrect (fromArrayToPlaster array size)
+isCorrected ([], size)       = True
+isCorrected ([x], size)      = True
+isCorrected ((array @ (x:y:xs)), size) = isPlasterCorrect (fromArrayToPlaster array size)
 
 --zamaist tego powinna byc funkcja, ktora zwraca dopuszcalnych sasiadow
 getPossibleGuesses l = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
@@ -75,7 +75,10 @@ fromArrayToPlaster array size = parsePlaster (fromArrayToStrings array 0 size)
 -- poprawność pól --
 
 isFieldCorrect :: Plaster -> Field -> Bool
-isFieldCorrect plaster field @ (Field ftype origftype x y) = (length ([ ntype | (Field ntype ontype nx ny) <- (getNeighbours plaster field),  ntype == ftype])) == 0
+isFieldCorrect plaster field @ (Field ftype origftype x y) = (length ([ ntype | (Field ntype ontype nx ny) <- (getNeighbours plaster field),  (areFieldsEqual ftype ntype)])) == 0
+
+areFieldsEqual ftype ntype | (ftype == Empty && ntype == Empty) = False
+	| otherwise = (ftype == ntype)
 
 isPlasterCorrect :: Plaster -> Bool
 isPlasterCorrect p = (length ([ f | f <- (getAllFields p), (not (isFieldCorrect p f))])) == 0
