@@ -3,12 +3,17 @@ import System.Environment
 import Plaster
 
 main = do
-    contents <- readFile "example1.txt"
+    contents <- readFile "example.txt"
     if checkInput contents then do
         let rowLines = lines contents
-        let plaster = parsePlaster rowLines
+        let plaster @ (Plaster rows size backtrack) = parsePlaster rowLines
         print plaster
-        print (plasterToArray plaster)
+        print size
+        let array = plasterToArray plaster
+        print array
+        print (isPlasterCorrect plaster)
+        let solved = solve [array] size
+        print solved
         return plaster
     else error "Niepoprawne wejście"
     
