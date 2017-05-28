@@ -86,9 +86,6 @@ isPlasterCorrect p = (length ([ f | f <- (getAllFields p), (not (isFieldCorrect 
 
 getAllFields :: Plaster -> [Field]
 getAllFields (Plaster rows size) = concat [ y | y <- map (\(Row fields _) -> fields ) rows] 
-
-getFieldNormal :: Plaster -> Int -> Int -> Field
-getFieldNormal p x y = fromMaybe (Field Empty 0 0) (getField p x y)
    
 getField :: Plaster -> Int -> Int -> Maybe Field
 getField (Plaster rows size) x y = if y < 0 || y >= (length rows)then Nothing 
@@ -121,14 +118,6 @@ getNeighboursOdd p x y=
     maybeToList (getField p (x+1) (y) ) ++
     maybeToList (getField p (x-1) (y+1) ) ++
     maybeToList (getField p (x) (y+1) ) 
-    
---zwraca pary (pole, liczba niepustych sasiadow)
-getNotEmptyNeighboursCount p = [(x, length notEmptyNeighbours)| x <- getAllFields p, let notEmptyNeighbours = filter (\(Field ft _ _) -> ft /= Empty) (getNeighbours p x )]   
-
---zwraca pole ktore ma najwiecej wypelnionych sasiadow na planszy, ale nie ma ich wypelnionych wszystkich: czyli po prostu ma najmniej kropek w stosunku do liczby wypelnionych
---to chyba moze sypnac wyjatek!
-getMostNeigboured p = fst (reverse (sortBy (compare `on` snd) (filter (\(field, cnt) -> cnt < length(getNeighbours p field)) (getNotEmptyNeighboursCount p))) !! 0)
-
 
 -------------------------
 -- wyświetlanie danych --
