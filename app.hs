@@ -6,7 +6,7 @@ main = do
     contents <- readFile "example1.txt"
     if checkInput contents then do
         let rowLines = lines contents
-        let plaster @ (Plaster rows size backtrack) = parsePlaster rowLines
+        let plaster @ (Plaster rows size) = parsePlaster rowLines
         print plaster
         print size
         let array = plasterToArray plaster

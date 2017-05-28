@@ -4,6 +4,14 @@ import Data.Maybe
 import Data.Function (on)
 import Data.List
 
+----------------------
+-- struktury danych --
+
+data Plaster = Plaster { rows::[Row], size::Int }
+data Row = Row { fields::[Field], h::Int }
+data Field = Field { fieldType::FieldType, x::Int, y::Int }
+data FieldType = Empty | A | B | C | D | E | F | G  deriving (Eq, Enum, Show, Ord)
+
 --------------
 -- algorytm --
 
@@ -34,29 +42,19 @@ isCorrected ((array @ (x:y:xs)), size) = isPlasterCorrect (fromArrayToPlaster ar
 --zamaist tego powinna byc funkcja, ktora zwraca dopuszcalnych sasiadow
 getPossibleGuesses l = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
 
-----------------------
--- struktury danych --
-
-data Plaster = Plaster { rows::[Row], size::Int, backtrack::Bool }
-data Row = Row { fields::[Field], h::Int }
-data Field = Field { fieldType::FieldType, originalFieldType::FieldType, x::Int, y::Int }
-data FieldType = Empty | A | B | C | D | E | F | G  deriving (Eq, Enum, Show, Ord)
-
--------------------------
-
 --------------------------
 -- parsowanie wewnetrze --
 
 plasterToArray :: Plaster -> [Char]
-plasterToArray (Plaster [] a b) = []
-plasterToArray (Plaster (r:rs) a b) = (rowToArray r) ++ (plasterToArray (Plaster rs a b))
+plasterToArray (Plaster [] a) = []
+plasterToArray (Plaster (r:rs) a) = (rowToArray r) ++ (plasterToArray (Plaster rs a))
 
 rowToArray :: Row -> [Char]
 rowToArray (Row [] _) = []
 rowToArray (Row (f:fs) h) = (fieldToChar f) : (rowToArray (Row fs h))
 
 fieldToChar :: Field -> Char
-fieldToChar (Field fieldType _ _ _) | fieldType == A = 'A'
+fieldToChar (Field fieldType _ _) | fieldType == A = 'A'
 	| fieldType == B = 'B'
 	| fieldType == C = 'C'
 	| fieldType == D = 'D'
@@ -75,7 +73,7 @@ fromArrayToPlaster array size = parsePlaster (fromArrayToStrings array 0 size)
 -- poprawność pól --
 
 isFieldCorrect :: Plaster -> Field -> Bool
-isFieldCorrect plaster field @ (Field ftype origftype x y) = (length ([ ntype | (Field ntype ontype nx ny) <- (getNeighbours plaster field),  (areFieldsEqual ftype ntype)])) == 0
+isFieldCorrect plaster field @ (Field ftype x y) = (length ([ ntype | (Field ntype nx ny) <- (getNeighbours plaster field),  (areFieldsEqual ftype ntype)])) == 0
 
 areFieldsEqual ftype ntype | (ftype == Empty && ntype == Empty) = False
 	| otherwise = (ftype == ntype)
@@ -87,25 +85,25 @@ isPlasterCorrect p = (length ([ f | f <- (getAllFields p), (not (isFieldCorrect 
 -- wybieranie jednego pola i jego sąsiadów --
 
 getAllFields :: Plaster -> [Field]
-getAllFields (Plaster rows size backtrack) = concat [ y | y <- map (\(Row fields _) -> fields ) rows] 
+getAllFields (Plaster rows size) = concat [ y | y <- map (\(Row fields _) -> fields ) rows] 
 
 getFieldNormal :: Plaster -> Int -> Int -> Field
-getFieldNormal p x y = fromMaybe (Field Empty Empty 0 0) (getField p x y)
+getFieldNormal p x y = fromMaybe (Field Empty 0 0) (getField p x y)
    
 getField :: Plaster -> Int -> Int -> Maybe Field
-getField (Plaster rows size backtrack) x y = if y < 0 || y >= (length rows)then Nothing 
+getField (Plaster rows size) x y = if y < 0 || y >= (length rows)then Nothing 
     else getField1 (rows!!y) x
 
 getField1 :: Row -> Int-> Maybe Field
 getField1 (Row fields _) x = if x < 0 || x >= (length fields) then Nothing
     else Just (fields!!x) 
     
-fieldName (Field fieldType origfieldtype _ _) = fromEnum fieldType
+fieldName (Field fieldType _ _) = fromEnum fieldType
 sortFields :: [Field] -> [Field]
 sortFields = sortBy (compare `on` fieldName)
   
 --getNeighbours _ Nothing = error "szukasz sasiada nieistniejacego pola"
-getNeighbours p  (Field _ _ x y) = if y `mod` 2 == 0 then sortFields (getNeighboursEven p x y)
+getNeighbours p  (Field _ x y) = if y `mod` 2 == 0 then sortFields (getNeighboursEven p x y)
     else sortFields (getNeighboursOdd p x y)
    
 getNeighboursEven p x y=    
@@ -125,7 +123,7 @@ getNeighboursOdd p x y=
     maybeToList (getField p (x) (y+1) ) 
     
 --zwraca pary (pole, liczba niepustych sasiadow)
-getNotEmptyNeighboursCount p = [(x, length notEmptyNeighbours)| x <- getAllFields p, let notEmptyNeighbours = filter (\(Field ft oft _ _) -> ft /= Empty) (getNeighbours p x )]   
+getNotEmptyNeighboursCount p = [(x, length notEmptyNeighbours)| x <- getAllFields p, let notEmptyNeighbours = filter (\(Field ft _ _) -> ft /= Empty) (getNeighbours p x )]   
 
 --zwraca pole ktore ma najwiecej wypelnionych sasiadow na planszy, ale nie ma ich wypelnionych wszystkich: czyli po prostu ma najmniej kropek w stosunku do liczby wypelnionych
 --to chyba moze sypnac wyjatek!
@@ -136,14 +134,14 @@ getMostNeigboured p = fst (reverse (sortBy (compare `on` snd) (filter (\(field, 
 -- wyświetlanie danych --
 
 instance Show Field where
-    show (Field A _ _ _) = "A   "
-    show (Field B _ _ _) = "B   "
-    show (Field C _ _ _) = "C   "
-    show (Field D _ _ _) = "D   "
-    show (Field E _ _ _) = "E   "
-    show (Field F _ _ _) = "F   "
-    show (Field G _ _ _) = "G   "
-    show (Field Empty _ _ _) = ".   "
+    show (Field A _ _) = "A   "
+    show (Field B _ _) = "B   "
+    show (Field C _ _) = "C   "
+    show (Field D _ _) = "D   "
+    show (Field E _ _) = "E   "
+    show (Field F _ _) = "F   "
+    show (Field G _ _) = "G   "
+    show (Field Empty _ _) = ".   "
 
 showFields :: [Field] -> String
 showFields [] = []
@@ -158,28 +156,28 @@ showRows [] = []
 showRows (r:rs) = show r ++ "\n" ++ showRows rs
 
 instance Show Plaster where
-    show (Plaster rows size backtrack) = showRows rows
+    show (Plaster rows size) = showRows rows
 
 -----------------------------------
 -- parsowanie z pliku tekstowego --
 
 parseFields :: String -> Int -> Int -> [Field]
 parseFields [] _ _ = []
-parseFields (s:sx) x y | s == 'A' = (Field A A x y) : parseFields sx (x + 1) y
-    | s == 'B' = (Field B B x y) : parseFields sx (x + 1) y
-    | s == 'C' = (Field C C x y) : parseFields sx (x + 1) y
-    | s == 'D' = (Field D D x y) : parseFields sx (x + 1) y
-    | s == 'E' = (Field E E x y) : parseFields sx (x + 1) y
-    | s == 'F' = (Field F F x y) : parseFields sx (x + 1) y
-    | s == 'G' = (Field G G x y) : parseFields sx (x + 1) y
-    | otherwise = (Field Empty Empty x y) : parseFields sx (x + 1) y
+parseFields (s:sx) x y | s == 'A' = (Field A x y) : parseFields sx (x + 1) y
+    | s == 'B' = (Field B x y) : parseFields sx (x + 1) y
+    | s == 'C' = (Field C x y) : parseFields sx (x + 1) y
+    | s == 'D' = (Field D x y) : parseFields sx (x + 1) y
+    | s == 'E' = (Field E x y) : parseFields sx (x + 1) y
+    | s == 'F' = (Field F x y) : parseFields sx (x + 1) y
+    | s == 'G' = (Field G x y) : parseFields sx (x + 1) y
+    | otherwise = (Field Empty x y) : parseFields sx (x + 1) y
 
 parseRows :: [String] -> Int -> [Row]
 parseRows [] _ = []
 parseRows (l:ls) i = (Row (parseFields l 0 i) i) : parseRows ls (i + 1)
 
 parsePlaster :: [String] -> Plaster
-parsePlaster lines = Plaster (parseRows lines 0) (length lines) False
+parsePlaster lines = Plaster (parseRows lines 0) (length lines)
 
 ----------------------------------------------
 -- sprawdzanie poprawnosci pliku tekstowego --
