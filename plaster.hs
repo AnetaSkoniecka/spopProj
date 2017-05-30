@@ -23,7 +23,7 @@ solve ll size = if checkIfCanFinish ll then ll  --lista nie zawiera juz list, kt
     
 solve' (l,size) = solve (replaceFirstZero l size) size
 
-replaceFirstZero l size = map (\(a,b) -> a) (filter isCorrected [((replaceNth n x l), size)| x <- getPossibleGuesses l]) 
+replaceFirstZero l size = map (\(a,b) -> a) (filter isCorrected [((replaceNth n newVal l), size)| newVal <- getPossibleGuesses l n]) 
     where n = if isNothing (elemIndex '.' l) then -1
               else fromJust (elemIndex '.' l)
 
@@ -40,7 +40,7 @@ isCorrected ([x], size)      = True
 isCorrected ((array @ (x:y:xs)), size) = isPlasterCorrect (fromArrayToPlaster array size)
 
 --zamaist tego powinna byc funkcja, ktora zwraca dopuszcalnych sasiadow
-getPossibleGuesses l = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+getPossibleGuesses l n = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
 
 --------------------------
 -- parsowanie wewnetrze --
@@ -73,10 +73,14 @@ fromArrayToPlaster array size = parsePlaster (fromArrayToStrings array 0 size)
 -- poprawność pól --
 
 isFieldCorrect :: Plaster -> Field -> Bool
-isFieldCorrect plaster field @ (Field ftype x y) = (length ([ ntype | (Field ntype nx ny) <- (getNeighbours plaster field),  (areFieldsEqual ftype ntype)])) == 0
+isFieldCorrect plaster field @ (Field ftype x y) = do
+    let neighbours = getNeighbours plaster field
+    let centerDiffrent = (length ([ ntype | (Field ntype nx ny) <- neighbours,  (areFieldsEqual ftype ntype)])) == 0
+    let neighboursDiffrent = (length ([ (atype,btype) | (Field atype ax ay) <- neighbours, (Field btype bx by) <- neighbours, (((ax /= bx) || (ay /= by)) && (areFieldsEqual atype btype))])) == 0
+    centerDiffrent && neighboursDiffrent
 
 areFieldsEqual ftype ntype | (ftype == Empty && ntype == Empty) = False
-	| otherwise = (ftype == ntype)
+    | otherwise = (ftype == ntype)
 
 isPlasterCorrect :: Plaster -> Bool
 isPlasterCorrect p = (length ([ f | f <- (getAllFields p), (not (isFieldCorrect p f))])) == 0
