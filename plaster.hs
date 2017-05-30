@@ -1,17 +1,67 @@
 module Plaster where
 import System.Environment 
 import Data.Maybe
-import Data.List (sortBy)
+import Data.List
 import Data.Function (on)
+
 ----------------------
 -- struktury danych --
 
-data Plaster = Plaster { rows::[Row] }
+data Plaster = Plaster { rows::[Row], size::Int }
 data Row = Row { fields::[Field], h::Int }
 data Field = Field { fieldType::FieldType, x::Int, y::Int }
 data FieldType = Empty| A | B | C | D | E | F | G  deriving (Eq, Enum, Show, Ord)
 
--------------------------
+--------------
+-- algorytm --
+
+--ll : lista list
+solve :: [[Field]] -> Int -> [[Field]]
+solve [] _ = []
+solve (ll @ (x:xs)) size = if checkIfCanFinish ll then [x]  --lista nie zawiera juz list, ktore maja zara/kropki - zwroc prawdilowe listy
+           else concatMap solve' [(l,size) | l <- ll]
+
+checkIfCanFinish [] = False
+checkIfCanFinish (l:ls) = checkIfCanFinish' l || checkIfCanFinish ls
+checkIfCanFinish' [] = True
+checkIfCanFinish' ((f @ (Field ft x y)):fs) = (ft /= Empty) && (checkIfCanFinish' fs)
+    
+solve' (l,size) = solve (replaceFirstZero l size) size
+
+replaceFirstZero l size = map (\(a,b) -> a) (filter isListCorrect [((replaceNth n newVal l), size)| newVal <- getPossibleGuesses l n]) 
+    where n = firstEmptyIndex l
+
+firstEmptyIndex l = firstEmptyIndex' l 0
+firstEmptyIndex' [] _ = -1
+firstEmptyIndex' ((f @ (Field ft x y)):fs) i | ft == Empty = i
+    | otherwise = firstEmptyIndex' fs (i+1)
+
+--zamienia element o wskazanym indexie. jezeli ix = -1 to nie zamienia nic
+replaceNth n newVal ((f @ (Field ft x y)):fs)
+    | n == -1 = f:fs
+    | n == 0 = (Field newVal x y):fs
+    | otherwise = f:replaceNth (n-1) newVal fs
+
+    
+--zamiast tego powinna byc funkcja, ktora sprawdza czy plansza podana jako lista jest prawidlowa
+isListCorrect (l,s) = isListCorrect' l l size
+isListCorrect' _ [] size = True
+isListCorrect' l (f:fs) size = (isElemCorrect l f) && isListCorrect' l fs size
+isElemCorrect l f = do
+    let fields = f:(getNeightbours l f)
+    length ([ (atype,btype) | (Field atype ax ay) <- fields, (Field btype bx by) <- fields, (((ax /= bx) || (ay /= by)) && (areTypesEqual atype btype))]) == 0
+
+areTypesEqual ftype ntype | (ftype == Empty && ntype == Empty) = False
+    | otherwise = (ftype == ntype)  
+
+getNeightbours l (Field t x y) | y `mod` 2 == 0 = [ el | el @ (Field et ex ey) <- l, (nx, ny) <- [(x,y-1), (x+1,y-1), (x-1,y), (x+1,y), (x,y+1), (x+1,y+1)], ((ex == nx) && (ey == ny))]
+    | otherwise = [ el | el @ (Field et ex ey) <- l, (nx, ny) <- [(x-1,y-1), (x, y-1), (x-1,y), (x+1,y), (x-1,y+1), (x,y+1)], ((ex == nx) && (ey == ny))]
+
+
+--zamaist tego powinna byc funkcja, ktora zwraca dopuszcalnych sasiadow
+getPossibleGuesses l n = do
+    let f = l !! n
+    [ c | c <- [A, B, C, D, E, F, G], (Field t x y) <- f:(getNeightbours l f), t /= c]
 
 
 
@@ -19,14 +69,14 @@ data FieldType = Empty| A | B | C | D | E | F | G  deriving (Eq, Enum, Show, Ord
 
 
 
+--------------------------
+-- operacje na plastrze --
 
+getAllFields (Plaster rows size) = concat [ y | y <- map (\(Row fields _) -> fields ) rows] 
 
-
-
-getAllFields (Plaster rows) = concat [ y | y <- map (\(Row fields _) -> fields ) rows] 
    
 getField :: Plaster -> Int -> Int -> Maybe Field
-getField (Plaster rows) x y = if y < 0 || y >= (length rows)then Nothing 
+getField (Plaster rows size) x y = if y < 0 || y >= (length rows)then Nothing 
     else getField1 (rows!!y) x
 
 getField1 :: Row -> Int-> Maybe Field
@@ -64,10 +114,20 @@ getNotEmptyNeighboursCount p = [(x, length notEmptyNeighbours)| x <- getAllField
 --to chyba moze sypnac wyjatek!
 getMostNeigboured p = fst (reverse (sortBy (compare `on` snd) (filter (\(field, cnt) -> cnt < length(getNeighbours p field)) (getNotEmptyNeighboursCount p))) !! 0)
 
+isFieldCorrect :: Plaster -> Field -> Bool
+isFieldCorrect plaster field @ (Field ftype x y) = do
+    let neighbours = getNeighbours plaster field
+    let centerDiffrent = (length ([ ntype | (Field ntype nx ny) <- neighbours,  (areFieldsEqual ftype ntype)])) == 0
+    let neighboursDiffrent = (length ([ (atype,btype) | (Field atype ax ay) <- neighbours, (Field btype bx by) <- neighbours, (((ax /= bx) || (ay /= by)) && (areFieldsEqual atype btype))])) == 0
+    centerDiffrent && neighboursDiffrent
 
+areFieldsEqual ftype ntype | (ftype == Empty && ntype == Empty) = False
+    | otherwise = (ftype == ntype)
+
+isPlasterCorrect :: Plaster -> Bool
+isPlasterCorrect p = (length ([ f | f <- (getAllFields p), (not (isFieldCorrect p f))])) == 0
  
- 
- 
+-------------------------
 -- wyswietlanie danych --
 
 instance Show Field where
@@ -93,7 +153,34 @@ showRows [] = []
 showRows (r:rs) = show r ++ "\n" ++ showRows rs
 
 instance Show Plaster where
-    show (Plaster rows) = showRows rows
+    show (Plaster rows size) = showRows rows
+
+---------------------------
+-- parsowanie wewnętrzne --
+
+plasterToArray :: Plaster -> [Char]
+plasterToArray (Plaster [] a) = []
+plasterToArray (Plaster (r:rs) a) = (rowToArray r) ++ (plasterToArray (Plaster rs a))
+
+rowToArray :: Row -> [Char]
+rowToArray (Row [] _) = []
+rowToArray (Row (f:fs) h) = (fieldToChar f) : (rowToArray (Row fs h))
+
+fieldToChar :: Field -> Char
+fieldToChar (Field fieldType _ _) | fieldType == A = 'A'
+    | fieldType == B = 'B'
+    | fieldType == C = 'C'
+    | fieldType == D = 'D'
+    | fieldType == E = 'E'
+    | fieldType == F = 'F'
+    | fieldType == G = 'G'
+    | fieldType == Empty = '.'
+
+fromArrayToStrings [] _ _ = []
+fromArrayToStrings array rIndex size | ((rIndex `mod` 2) == 0) = (take (size-1) array) : (fromArrayToStrings (drop (size-1) array) (rIndex+1) size)
+    |  otherwise = (take (size) array) : (fromArrayToStrings (drop (size) array)  (rIndex+1) size)
+ 
+fromArrayToPlaster array size = parsePlaster (fromArrayToStrings array 0 size)
 
 -----------------------------------
 -- parsowanie z pliku tekstowego --
@@ -114,7 +201,7 @@ parseRows [] _ = []
 parseRows (l:ls) i = (Row (parseFields l 0 i) i) : parseRows ls (i + 1)
 
 parsePlaster :: [String] -> Plaster
-parsePlaster lines = Plaster (parseRows lines 0)
+parsePlaster lines = Plaster (parseRows lines 0) (length lines)
 
 ----------------------------------------------
 -- sprawdzanie poprawnosci pliku tekstowego --
