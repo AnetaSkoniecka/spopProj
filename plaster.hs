@@ -23,8 +23,10 @@ solve ll size = if checkIfCanFinish ll then ll  --lista nie zawiera juz list, kt
     
 solve' (l,size) = solve (replaceFirstZero l size) size
 
-replaceFirstZero l size = map (\(a,b) -> a) (filter isCorrected [((replaceNth n newVal l), size)| newVal <- getPossibleGuesses l n]) 
-    where n = if isNothing (elemIndex '.' l) then -1
+replaceFirstZero l size = map (\koncowyPlaster -> plasterToArray koncowyPlaster) (filter isCorrected [ (fromArrayToPlaster (replaceNth n newVal l) size) | newVal <- getPossibleGuesses wejsciowyPlaster (x,y)]) 
+    where   wejsciowyPlaster = fromArrayToPlaster l size
+            (x,y) = arrayIndexToPlasterCoordinates n size
+            n = if isNothing (elemIndex '.' l) then -1
               else fromJust (elemIndex '.' l)
 
 --zamienia element o wskazanym indexie. jezeli ix = -1 to nie zamienia nic
@@ -35,15 +37,30 @@ replaceNth n newVal (x:xs)
 
     
 --zamiast tego powinna byc funkcja, ktora sprawdza czy plansza podana jako lista jest prawidlowa
-isCorrected ([], size)       = True
-isCorrected ([x], size)      = True
-isCorrected ((array @ (x:y:xs)), size) = isPlasterCorrect (fromArrayToPlaster array size)
+isCorrected plaster = isPlasterCorrect plaster
 
 --zamaist tego powinna byc funkcja, ktora zwraca dopuszcalnych sasiadow
-getPossibleGuesses l n = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+getPossibleGuesses plaster (x,y) = do
+    let field = (getFieldNormal plaster x y)
+    let reservedChars = [ fieldToChar f | f <- (field : (getNeighbours plaster field))]
+    [ c | c <- ['A', 'B', 'C', 'D', 'E', 'F', 'G'], r <- reservedChars, r /= c]
 
 --------------------------
 -- parsowanie wewnetrze --
+
+arrayIndexToPlasterCoordinates n size = arrayIndexToPlasterCoordinates' n size (0,0)
+arrayIndexToPlasterCoordinates' n size (x,y) | n == -1 = (-1,-1)
+    | n == 0 = (x,y)
+    | otherwise = if (y `mod` 2) == 0 then do
+        if x < (size - 2) then
+            arrayIndexToPlasterCoordinates' (n-1) size (x+1,y)
+        else
+            arrayIndexToPlasterCoordinates' (n-1) size (0,y+1)
+    else do
+        if x < (size - 1) then
+            arrayIndexToPlasterCoordinates' (n-1) size (x+1,y)
+        else
+            arrayIndexToPlasterCoordinates' (n-1) size (0,y+1)
 
 plasterToArray :: Plaster -> [Char]
 plasterToArray (Plaster [] a) = []
@@ -91,6 +108,9 @@ isPlasterCorrect p = (length ([ f | f <- (getAllFields p), (not (isFieldCorrect 
 getAllFields :: Plaster -> [Field]
 getAllFields (Plaster rows size) = concat [ y | y <- map (\(Row fields _) -> fields ) rows] 
    
+getFieldNormal :: Plaster -> Int -> Int -> Field
+getFieldNormal p x y = fromMaybe (Field Empty 0 0) (getField p x y)
+
 getField :: Plaster -> Int -> Int -> Maybe Field
 getField (Plaster rows size) x y = if y < 0 || y >= (length rows)then Nothing 
     else getField1 (rows!!y) x
