@@ -17,6 +17,8 @@ main = do
             let firstSolved = solved !! 0
             print "Plaster rozwiazany"
             print firstSolved
+            print ""
+            print (fieldsToPlaster firstSolved size)
             -- print (fromArrayToPlaster firstSolved size)
         return []
     else error "Niepoprawne wejście"

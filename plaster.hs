@@ -166,6 +166,12 @@ rowToArray :: Row -> [Char]
 rowToArray (Row [] _) = []
 rowToArray (Row (f:fs) h) = (fieldToChar f) : (rowToArray (Row fs h))
 
+fieldsToChars [] = []
+fieldsToChars (f:fs) = (fieldToChar f) : (fieldsToChars fs)
+
+fieldsToPlaster fs = fromArrayToPlaster (fieldsToChars fs)
+
+
 fieldToChar :: Field -> Char
 fieldToChar (Field fieldType _ _) | fieldType == A = 'A'
     | fieldType == B = 'B'
